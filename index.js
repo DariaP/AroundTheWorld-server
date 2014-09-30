@@ -14,7 +14,13 @@ function initNetwork(dbApi) {
     dbApi.getAllPlaces(function(places) {
       res.send(places);
     })
-  })
+  });
+
+  app.get('/getAllMaps', function (req, res) {
+    dbApi.getAllMaps(function(maps) {
+      res.send(maps);
+    })
+  });
 
   app.listen(8089);
 }
@@ -60,7 +66,7 @@ function initDb(callback) {
         );
         callback({result: 'done'});
       },
-      getAllMaps: function(params, callback) {
+      getAllMaps: function(callback) {
         maps.find({}, {}).toArray ( function (err, res) {
             callback(res);
         })
