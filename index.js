@@ -10,7 +10,6 @@ function initNetwork(dbApi) {
   app.use(cors());
 
   app.get('/getAllPlaces', function (req, res) {
-    //req.query
     dbApi.getAllPlaces(function(places) {
       res.send(places);
     })
@@ -18,6 +17,12 @@ function initNetwork(dbApi) {
 
   app.get('/getAllMaps', function (req, res) {
     dbApi.getAllMaps(function(maps) {
+      res.send(maps);
+    })
+  });
+
+  app.get('/getPlacesOnMap', function (req, res) {
+    dbApi.getPlacesOnMap(req.query, function(maps) {
       res.send(maps);
     })
   });
