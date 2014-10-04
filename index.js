@@ -3,11 +3,14 @@ var mongodb = require('mongodb'),
  
 function initNetwork(dbApi) {
   var express = require('express'),
-      cors = require('cors');
+      cors = require('cors'),
+      bodyParser = require('body-parser');
 
   var app = express();
 
   app.use(cors());
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded());
 
   app.get('/getAllPlaces', function (req, res) {
     dbApi.getAllPlaces(function(places) {
@@ -21,10 +24,16 @@ function initNetwork(dbApi) {
     })
   });
 
-  app.get('/getPlacesOnMap', function (req, res) {
+  app.get('/places', function (req, res) {
     dbApi.getPlacesOnMap(req.query, function(maps) {
       res.send(maps);
     })
+  });
+
+  app.post('/places', function (req, res) {
+    dbApi.updatePlace(req.body, function(place) {
+      res.send(place);
+    });
   });
 
   app.listen(8089);
@@ -76,6 +85,28 @@ function initDb(callback) {
             callback(res);
         })
       },
+
+      updatePlace: function(place, callback) {
+        places.update(
+          { _id:  mongodb.ObjectID(place._id) },
+          { $set:  {
+            name: place.name,
+            location: place.location,
+            notes: place.notes,
+            pics: place.pics, 
+            parentMaps: place.parentMaps }
+          },
+          {w: 1},
+          function (err, result) {
+            if (result == 1) {
+              callback({});
+            } else {
+              callback({err: err});
+            }
+          }
+        );
+      },
+
       getPlacesOnMap: function(params, callback) {
         places.find({parentMaps: { $all : [params.map]} }, {}).toArray ( function (err, res) {
           callback(res);
