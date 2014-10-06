@@ -63,11 +63,32 @@ function initDb(callback) {
 
       return place;
     }
+    function updateExistingPlace(place, callback) {
+      places.update(
+        { _id:  mongodb.ObjectID(place._id) },
+        { $set:  {
+          name: place.name,
+          location: place.location,
+          notes: place.notes,
+          pics: place.pics, 
+          parentMaps: place.parentMaps }
+        },
+        {w: 1},
+        function (err, result) {
+          if (result == 1) {
+            callback({});
+          } else {
+            callback({err: err});
+          }
+        }
+      );
+    };
+
     var dbApi = {
       getAllPlaces: function(callback) {
       	places.find({}, {}).toArray ( function (err, res) {
           callback(res);
-      	})
+      	});
       },
       addPlace: function(params, callback) {
         places.insert(normPlace(params));
@@ -83,28 +104,24 @@ function initDb(callback) {
       getAllMaps: function(callback) {
         maps.find({}, {}).toArray ( function (err, res) {
             callback(res);
-        })
+        });
       },
 
       updatePlace: function(place, callback) {
-        places.update(
-          { _id:  mongodb.ObjectID(place._id) },
-          { $set:  {
-            name: place.name,
-            location: place.location,
-            notes: place.notes,
-            pics: place.pics, 
-            parentMaps: place.parentMaps }
-          },
-          {w: 1},
-          function (err, result) {
-            if (result == 1) {
-              callback({});
-            } else {
-              callback({err: err});
-            }
+        var id = mongodb.ObjectID(place._id);
+        places.find({_id: id}).limit(1).count(function (e, count) {
+          if (count == 0) {
+            places.insert(place, function(err, doc){
+              if (err) {
+                callback({err: err});
+              } else {
+                callback({});
+              }
+            });
+          } else {
+            updateExistingPlace(place, callback);
           }
-        );
+        });
       },
 
       getPlacesOnMap: function(params, callback) {
