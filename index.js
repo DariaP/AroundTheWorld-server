@@ -12,22 +12,22 @@ function initNetwork(dbApi) {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded());
 
-  app.get('/getAllPlaces', function (req, res) {
-    dbApi.getAllPlaces(function(places) {
-      res.send(places);
-    })
-  });
-
-  app.get('/getAllMaps', function (req, res) {
+  app.get('/maps', function (req, res) {
     dbApi.getAllMaps(function(maps) {
       res.send(maps);
     })
   });
 
   app.get('/places', function (req, res) {
-    dbApi.getPlacesOnMap(req.query, function(maps) {
-      res.send(maps);
-    })
+    if (req.query.map) {
+      dbApi.getPlacesOnMap(req.query, function(maps) {
+        res.send(maps);
+      });
+    } else {
+      dbApi.getAllPlaces(function(places) {
+        res.send(places);
+      });      
+    }
   });
 
   app.post('/places', function (req, res) {
@@ -125,7 +125,8 @@ function initDb(callback) {
       },
 
       getPlacesOnMap: function(params, callback) {
-        places.find({parentMaps: { $all : [params.map]} }, {}).toArray ( function (err, res) {
+        console.log(params.map);
+        places.find({parentMaps: { $all : [ parseInt(params.map) ]} }, {}).toArray ( function (err, res) {
           callback(res);
         });
       }
