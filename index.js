@@ -31,8 +31,9 @@ function initNetwork(dbApi) {
   });
 
   app.post('/places', function (req, res) {
-    dbApi.updatePlace(req.body, function(place) {
-      res.send(place);
+    dbApi.updatePlace(req.body, function(result) {
+      if(result.err) res.status(500).send(result)
+      else res.send(result);
     });
   });
 
@@ -49,6 +50,8 @@ function initDb(callback) {
     var places = new mongodb.Collection(client, config.placesCollection),
         maps = new mongodb.Collection(client, config.mapsCollection),
         connections = new mongodb.Collection(client, config.connectionsCollection);
+
+    places.ensureIndex( { "name": "" }, { unique: true } );
 
     function normPlace(place) {
       if(!place.notes) place.notes="";
@@ -85,25 +88,34 @@ function initDb(callback) {
     };
 
     var dbApi = {
+
       getAllPlaces: function(callback) {
       	places.find({}, {}).toArray ( function (err, res) {
-          callback(res);
+          if (err) {
+            callback({err: err});
+          } else {
+            callback(res);
+          }
       	});
       },
+
       addPlace: function(params, callback) {
-        places.insert(normPlace(params));
-        callback({result: 'done'});
+        places.insert(normPlace(params), function(err, res) {
+          if (err | res.length() != 1) {
+            callback({err: err});
+          } else {
+            callback({result: 'done'});
+          }
+        });
       },
-      addPlaceOnMap: function (params, callback) {
-        places.update(
-          { name: params.place },
-          { $push: { parentMaps: params.map }}
-        );
-        callback({result: 'done'});
-      },
+
       getAllMaps: function(callback) {
         maps.find({}, {}).toArray ( function (err, res) {
+          if (err) {
+            callback({err: err});
+          } else {
             callback(res);
+          }
         });
       },
 
@@ -111,7 +123,7 @@ function initDb(callback) {
         var id = mongodb.ObjectID(place._id);
         places.find({_id: id}).limit(1).count(function (e, count) {
           if (count == 0) {
-            places.insert(place, function(err, doc){
+            places.insert(place, {w: 1}, function(err, doc){
               if (err) {
                 callback({err: err});
               } else {
@@ -125,14 +137,18 @@ function initDb(callback) {
       },
 
       getPlacesOnMap: function(params, callback) {
-        console.log(params.map);
         places.find({parentMaps: { $all : [ parseInt(params.map) ]} }, {}).toArray ( function (err, res) {
-          callback(res);
+          if (err) {
+            callback({err: err});
+          } else {
+            callback(res);
+          }
         });
       }
     }
 
-    callback(dbApi)
+    callback(dbApi);
+
   });
 }
 
