@@ -86,6 +86,16 @@ function initDb(callback) {
       );
     };
 
+    function addPlace(place, callback) {
+      places.insert(place, {w: 1}, function(err, doc){
+        if (err) {
+          callback({err: err});
+        } else {
+          callback({});
+        }
+      });
+    };
+
     var dbApi = {
 
       getAllPlaces: function(callback) {
@@ -96,16 +106,6 @@ function initDb(callback) {
             callback(res);
           }
       	});
-      },
-
-      addPlace: function(params, callback) {
-        places.insert(normPlace(params), {w: 1}, function(err, res) {
-          if (err | res.length() != 1) {
-            callback({err: err});
-          } else {
-            callback({result: 'done'});
-          }
-        });
       },
 
       getAllMaps: function(callback) {
@@ -122,13 +122,7 @@ function initDb(callback) {
         var id = mongodb.ObjectID(place._id);
         places.find({_id: id}).limit(1).count(function (e, count) {
           if (count == 0) {
-            places.insert(place, {w: 1}, function(err, doc){
-              if (err) {
-                callback({err: err});
-              } else {
-                callback({});
-              }
-            });
+            addPlace(place, callback);
           } else {
             updateExistingPlace(place, callback);
           }
