@@ -12,29 +12,27 @@ function initNetwork(dbApi) {
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded());
 
-  app.get('/maps', function (req, res) {
-    dbApi.getAllMaps(function(maps) {
-      res.send(maps);
-    })
-  });
+  var callback = function(resp) {
+    return function(result) {
+      if(result.err) resp.status(500).send(result)
+      else resp.send(result);
+    };
+  };
 
   app.get('/places', function (req, res) {
     if (req.query.map) {
-      dbApi.getPlacesOnMap(req.query, function(maps) {
-        res.send(maps);
-      });
+      dbApi.getPlacesOnMap(req.query, callback(res));
     } else {
-      dbApi.getAllPlaces(function(places) {
-        res.send(places);
-      });      
+      dbApi.getAllPlaces(callback(res));      
     }
   });
 
+  app.get('/maps', function (req, res) {
+    dbApi.getAllMaps(callback(res));
+  });
+
   app.post('/places', function (req, res) {
-    dbApi.updatePlace(req.body, function(result) {
-      if(result.err) res.status(500).send(result)
-      else res.send(result);
-    });
+    dbApi.updatePlace(req.body, callback(res));
   });
 
   app.listen(8089);
@@ -66,6 +64,7 @@ function initDb(callback) {
 
       return place;
     }
+
     function updateExistingPlace(place, callback) {
       places.update(
         { _id:  mongodb.ObjectID(place._id) },
@@ -90,7 +89,7 @@ function initDb(callback) {
     var dbApi = {
 
       getAllPlaces: function(callback) {
-      	places.find({}, {}).toArray ( function (err, res) {
+      	places.find({}, {}, {w: 1}).toArray ( function (err, res) {
           if (err) {
             callback({err: err});
           } else {
@@ -100,7 +99,7 @@ function initDb(callback) {
       },
 
       addPlace: function(params, callback) {
-        places.insert(normPlace(params), function(err, res) {
+        places.insert(normPlace(params), {w: 1}, function(err, res) {
           if (err | res.length() != 1) {
             callback({err: err});
           } else {
@@ -110,7 +109,7 @@ function initDb(callback) {
       },
 
       getAllMaps: function(callback) {
-        maps.find({}, {}).toArray ( function (err, res) {
+        maps.find({}, {}, {w: 1}).toArray ( function (err, res) {
           if (err) {
             callback({err: err});
           } else {
@@ -137,7 +136,7 @@ function initDb(callback) {
       },
 
       getPlacesOnMap: function(params, callback) {
-        places.find({parentMaps: { $all : [ parseInt(params.map) ]} }, {}).toArray ( function (err, res) {
+        places.find({parentMaps: { $all : [ parseInt(params.map) ]} }, {}, {w: 1}).toArray ( function (err, res) {
           if (err) {
             callback({err: err});
           } else {
