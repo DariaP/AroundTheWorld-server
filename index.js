@@ -28,7 +28,11 @@ function initNetwork(dbApi) {
   });
 
   app.get('/maps', function (req, res) {
-    dbApi.getAllMaps(callback(res));
+    if (req.query.ids) {
+      dbApi.getMapsWithIds(req.query.ids, callback(res));
+    } else {
+      dbApi.getAllMaps(callback(res));
+    }
   });
 
   app.post('/places', function (req, res) {
@@ -103,6 +107,7 @@ function initDb(callback) {
           if (err) {
             callback({err: err});
           } else {
+
             callback(res);
           }
       	});
@@ -115,6 +120,24 @@ function initDb(callback) {
           } else {
             callback(res);
           }
+        });
+      },
+
+      getMapsWithIds: function(ids, callback) {
+        var idNums = [];
+        if( typeof ids === 'string' ) {
+          idNums = [ parseInt(ids) ];
+        } else {
+          idNums = ids.map(function(id) { return parseInt(id); } );
+        }
+        maps.find( { _id: { $in: idNums }}, 
+          {}, {w: 1}).
+          toArray ( function (err, res) {
+            if (err) {
+              callback({err: err});
+            } else {
+              callback(res);
+            }
         });
       },
 
