@@ -39,6 +39,10 @@ function initNetwork(dbApi) {
     dbApi.updatePlace(req.body, callback(res));
   });
 
+  app.delete('/map', function (req, res) {
+    dbApi.deleteMap(req.query.id, callback(res));
+  });
+
   app.listen(8089);
 }
 
@@ -160,6 +164,16 @@ function initDb(callback) {
             callback(res);
           }
         });
+      },
+
+      deleteMap: function(id, callback) {
+        maps.remove({_id: parseInt(id)}, {w: 1}, function (err, result) {
+          if (result == 1) {
+            callback({});
+          } else {
+            callback({err: err});
+          }
+        })
       }
     }
 
