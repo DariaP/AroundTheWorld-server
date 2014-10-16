@@ -39,6 +39,10 @@ function initNetwork(dbApi) {
     dbApi.updatePlace(req.body, callback(res));
   });
 
+  app.put('/map', function (req, res) {
+    dbApi.updateExistingMap(req.body, callback(res));
+  });
+
   app.delete('/map', function (req, res) {
     dbApi.deleteMap(req.query.id, callback(res));
   });
@@ -58,20 +62,6 @@ function initDb(callback) {
         connections = new mongodb.Collection(client, config.connectionsCollection);
 
     places.ensureIndex( { "name": "" }, { unique: true } );
-
-    function normPlace(place) {
-      if(!place.notes) place.notes="";
-      if(!place.parentMaps) place.parentMaps=[];
-      if(!place.pics) 
-        place.pics=[];
-      else
-        place.pics = place.pics.split(/[, \n]+/);
-
-      var latlng = place.location.split(/[, ]+/);
-      place.location = {lat: parseInt(latlng[0]), lng: parseInt(latlng[1])}
-
-      return place;
-    }
 
     function updateExistingPlace(place, callback) {
       places.update(
@@ -174,6 +164,21 @@ function initDb(callback) {
             callback({err: err});
           }
         })
+      },
+
+      updateExistingMap: function(map, callback) {
+        maps.update(
+          { _id:  parseInt(map._id) },
+          { $set:  { name: map.name }
+        },
+        {w: 1},
+        function (err, result) {
+          if (result == 1) {
+            callback({});
+          } else {
+            callback({err: err});
+          }
+        });
       }
     }
 
