@@ -14,7 +14,7 @@ function initNetwork(dbApi) {
 
   var callback = function(resp) {
     return function(result) {
-      if(result.err) resp.status(500).send(result)
+      if(result.err) resp.status(500).send(result);
       else resp.send(result);
     };
   };
@@ -27,6 +27,10 @@ function initNetwork(dbApi) {
     }
   });
 
+  app.post('/places', function (req, res) {
+    dbApi.updatePlace(req.body, callback(res));
+  });
+
   app.get('/maps', function (req, res) {
     if (req.query.ids) {
       dbApi.getMapsWithIds(req.query.ids, callback(res));
@@ -35,12 +39,12 @@ function initNetwork(dbApi) {
     }
   });
 
-  app.post('/places', function (req, res) {
-    dbApi.updatePlace(req.body, callback(res));
+  app.put('/map', function (req, res) {
+    dbApi.updateMap(req.body, callback(res));
   });
 
-  app.put('/map', function (req, res) {
-    dbApi.updateExistingMap(req.body, callback(res));
+  app.post('/map', function (req, res) {
+    dbApi.addMap(req.body, callback(res));
   });
 
   app.delete('/map', function (req, res) {
@@ -63,9 +67,16 @@ function initDb(callback) {
 
     places.ensureIndex( { "name": "" }, { unique: true } );
 
+    function getId(id) {
+      if (id.length == 24) 
+        return mongodb.ObjectID(id);
+      else 
+        return parseInt(id);
+    };
+
     function updateExistingPlace(place, callback) {
       places.update(
-        { _id:  mongodb.ObjectID(place._id) },
+        { _id:  getId(place._id) },
         { $set:  {
           name: place.name,
           location: place.location,
@@ -120,9 +131,9 @@ function initDb(callback) {
       getMapsWithIds: function(ids, callback) {
         var idNums = [];
         if( typeof ids === 'string' ) {
-          idNums = [ parseInt(ids) ];
+          idNums = [ getId(ids) ];
         } else {
-          idNums = ids.map(function(id) { return parseInt(id); } );
+          idNums = ids.map(function(id) { return getId(id); } );
         }
         maps.find( { _id: { $in: idNums }}, 
           {}, {w: 1}).
@@ -136,8 +147,7 @@ function initDb(callback) {
       },
 
       updatePlace: function(place, callback) {
-        var id = mongodb.ObjectID(place._id);
-        places.find({_id: id}).limit(1).count(function (e, count) {
+        places.find({_id: getId(place._id)}).limit(1).count(function (e, count) {
           if (count == 0) {
             addPlace(place, callback);
           } else {
@@ -147,7 +157,11 @@ function initDb(callback) {
       },
 
       getPlacesOnMap: function(params, callback) {
-        places.find({parentMaps: { $all : [ parseInt(params.map) ]} }, {}, {w: 1}).toArray ( function (err, res) {
+        places.find(
+          {parentMaps: { $all : [ getId(params.map) ]} }, 
+          {}, 
+          {w: 1}
+        ).toArray ( function (err, res) {
           if (err) {
             callback({err: err});
           } else {
@@ -157,7 +171,7 @@ function initDb(callback) {
       },
 
       deleteMap: function(id, callback) {
-        maps.remove({_id: parseInt(id)}, {w: 1}, function (err, result) {
+        maps.remove({_id: getId(id)}, {w: 1}, function (err, result) {
           if (result == 1) {
             callback({});
           } else {
@@ -166,9 +180,9 @@ function initDb(callback) {
         })
       },
 
-      updateExistingMap: function(map, callback) {
+      updateMap: function(map, callback) {
         maps.update(
-          { _id:  parseInt(map._id) },
+          { _id:  getId(map._id) },
           { $set:  { name: map.name }
         },
         {w: 1},
@@ -179,7 +193,18 @@ function initDb(callback) {
             callback({err: err});
           }
         });
+      },
+
+      addMap: function (map, callback) {
+        maps.insert(map, {w: 1}, function(err, doc) {
+          if (err) {
+            callback({err: err});
+          } else {
+            callback({_id: doc[0]._id});
+          }
+        });
       }
+
     }
 
     callback(dbApi);
