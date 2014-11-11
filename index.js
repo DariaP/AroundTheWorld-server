@@ -100,7 +100,7 @@ function initDb(callback) {
         if (err) {
           callback({err: err});
         } else {
-          callback({});
+          callback({_id: doc[0]._id});
         }
       });
     };
