@@ -147,13 +147,17 @@ function initDb(callback) {
       },
 
       updatePlace: function(place, callback) {
-        places.find({_id: getId(place._id)}).limit(1).count(function (e, count) {
-          if (count == 0) {
-            addPlace(place, callback);
-          } else {
-            updateExistingPlace(place, callback);
-          }
-        });
+        if ( ! place._id) {
+          addPlace(place, callback);
+        } else {
+          places.find({_id: getId(place._id)}).limit(1).count(function (e, count) {
+            if (count == 0) {
+              addPlace(place, callback);
+            } else {
+              updateExistingPlace(place, callback);
+            }
+          });
+        }
       },
 
       getPlacesOnMap: function(params, callback) {
